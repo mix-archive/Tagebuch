@@ -1,10 +1,9 @@
-import '@mantine/core/styles.css';
-
-import { ColorSchemeScript, MantineProvider } from '@mantine/core';
+import { ColorSchemeScript, MantineProvider } from "@mantine/core";
+import "@mantine/core/styles.css";
 
 export const metadata = {
-  title: 'My Mantine app',
-  description: 'I have followed setup instructions carefully',
+  title: "My Mantine app",
+  description: "I have followed setup instructions carefully",
 };
 
 export default function RootLayout({
