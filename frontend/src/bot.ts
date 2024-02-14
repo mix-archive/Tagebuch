@@ -1,9 +1,11 @@
-import { readFileSync } from "fs";
 import { launch } from "puppeteer";
 
 import { randomBytes } from "./utils";
 
-const flag = readFileSync("/flag.txt").toString();
+if (!process.env.FLAG) {
+  console.error("FLAG is not set");
+  process.exit(1);
+}
 
 export default async function visit(id, username) {
   const browser = await launch({
@@ -29,7 +31,7 @@ export default async function visit(id, username) {
 
     page.setCookie({
       name: "FLAG",
-      value: flag,
+      value: process.env.FLAG!,
       domain: "localhost",
       path: "/",
       httpOnly: false,
