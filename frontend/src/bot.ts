@@ -10,7 +10,7 @@ if (!process.env.FLAG) {
 export default async function visit(id, username) {
   const browser = await launch({
     args: ["--no-sandbox", "--headless"],
-    executablePath: "/usr/bin/google-chrome",
+    executablePath: "/usr/bin/chromium",
   });
   try {
     let page = await browser.newPage();
