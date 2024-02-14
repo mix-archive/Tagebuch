@@ -3,18 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <title></title>
-    <link rel="stylesheet" href="https://andybrewer.github.io/mvp/mvp.css" />
+    <link rel="stylesheet" href="/static/css/mvp.css" />
     <style>
+      :root {
+        --width-card: 500px;
+      }
+
       form {
         border: none !important;
         box-shadow: none !important;
+        margin: auto;
       }
     </style>
   </head>
   <body>
     <header>
-      <h1>New diary</h1>
-      <div>New diary just for you :D</div>
+      <h1>Tagebuch</h1>
+      <div>Nehmen Sie sich Zeit für sich selbst</div>
     </header>
     <main>
       <% if (typeof msg === 'string') { %>
@@ -27,26 +32,24 @@
       <section>
         <aside>
           <form action="/login" method="POST">
-            <label for=""
-              >username
-              <input
-                id="username"
-                name="username"
-                placeholder="username"
-                required
-                minlength="4"
-                maxlength="10"
-            /></label>
-            <label for=""
-              >password
-              <input
-                id="password"
-                type="password"
-                name="password"
-                placeholder="password"
-                required
-                minlength="6"
-            /></label>
+            <label for="username">Username</label>
+            <input
+              id="username"
+              name="username"
+              placeholder="username"
+              required
+              minlength="4"
+              maxlength="10"
+            />
+            <label for="password">Password</label>
+            <input
+              id="password"
+              type="password"
+              name="password"
+              placeholder="password"
+              required
+              minlength="6"
+            />
             <button id="submit">LOGIN</button>
           </form>
         </aside>

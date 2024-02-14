@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <title></title>
-    <link rel="stylesheet" href="https://andybrewer.github.io/mvp/mvp.css" />
+    <link rel="stylesheet" href="/static/css/mvp.css" />
     <% if (sitekey) { %>
     <script
       nonce="<%= nonce %>"
@@ -28,15 +28,7 @@
     <header>
       <nav>
         <ul>
-          <li>Diary</li>
-        </ul>
-        <ul>
-          <form action="/report" method="post">
-            <input type="hidden" name="id" id="report-id" />
-            <input type="hidden" name="username" id="report-username" />
-            <div class="cf-turnstile" data-sitekey="<%= sitekey %>"></div>
-            <input type="submit" value="report" />
-          </form>
+          <li>Read and Share</li>
         </ul>
       </nav>
     </header>
@@ -46,5 +38,16 @@
       <div id="content"></div>
     </main>
     <script nonce="<%= nonce %>" src="/static/js/share_read.js"></script>
+    <footer>
+      <form action="/report" method="post">
+        <input type="hidden" name="id" id="report-id" />
+        <input type="hidden" name="username" id="report-username" />
+        <% if (sitekey) { %>
+        <sup>Please wait for captcha being loaded</sup>
+        <div class="cf-turnstile" data-sitekey="<%= sitekey %>"></div>
+        <% } %>
+        <button type="submit">Report</button>
+      </form>
+    </footer>
   </body>
 </html>

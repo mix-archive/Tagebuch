@@ -50,7 +50,7 @@ app.use((req, res, next) => {
     frame-src https://challenges.cloudflare.com;
     object-src 'none';
     base-uri 'self';
-    style-src 'unsafe-inline' https://andybrewer.github.io/mvp/mvp.css;`
+    style-src 'self' 'unsafe-inline';`
     .replace(/\s+/g, " ")
     .trim();
   res.setHeader("Content-Security-Policy", csp);
