@@ -1,0 +1,14 @@
+version: "3.7"
+name: tagebuch
+
+services:
+  challenge:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    environment:
+      - FLAG=${FLAG}
+      - TURNSTILE_SITE_KEY=${TURNSTILE_SITE_KEY}
+      - TURNSTILE_SECRET_KEY=${TURNSTILE_SECRET_KEY}
+    ports:
+      - "8080:80"
