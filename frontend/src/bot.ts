@@ -13,6 +13,7 @@ export default async function visit(id, username) {
     executablePath: "/usr/bin/chromium",
   });
   try {
+    console.log(`Visiting ${id} as ${username}`);
     let page = await browser.newPage();
 
     await page.goto(`http://localhost/login`);
