@@ -5,7 +5,8 @@
   "description": "",
   "scripts": {
     "frontend": "pnpm --filter frontend",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "start": "pnpm frontend start"
   },
   "keywords": [],
   "author": "",
