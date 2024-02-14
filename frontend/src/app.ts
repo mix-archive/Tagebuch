@@ -36,6 +36,8 @@ app.use(
   session({
     cookie: { maxAge: 600000 },
     secret: randomBytes(64),
+    resave: true,
+    saveUninitialized: true,
   }),
 );
 
@@ -44,8 +46,8 @@ app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Cache-Control", "no-cache, no-store");
   const csp = `
-    script-src 'nonce-${res.nonce}' strict-dynamic;
-    frame-src 'none';
+    script-src 'nonce-${res.nonce}' 'strict-dynamic'
+    frame-src https://challenges.cloudflare.com;
     object-src 'none';
     base-uri 'self';
     style-src 'unsafe-inline' https://andybrewer.github.io/mvp/mvp.css;`
