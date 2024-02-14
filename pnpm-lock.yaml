@@ -38,6 +38,9 @@ importers:
       express-session:
         specifier: ^1.18.0
         version: 1.18.0
+      puppeteer:
+        specifier: ^21.5.0
+        version: 21.11.0
     devDependencies:
       '@types/body-parser':
         specifier: ^1.19.5
