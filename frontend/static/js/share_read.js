@@ -30,8 +30,7 @@ load = () => {
           document.getElementById("content").appendChild(content);
         });
     }
-    document.getElementById("report").href =
-      `/report?id=${id}&username=${username}`;
+    document.getElementById("report-id").value = id;
   }
 };
 load();

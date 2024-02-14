@@ -3,6 +3,7 @@ import { assert } from "console";
 import express from "express";
 import session from "express-session";
 
+import visit from "./bot";
 import { genNonce, randomBytes, sha256 } from "./utils";
 
 declare module "express-session" {
@@ -17,10 +18,14 @@ declare global {
       nonce: string;
     }
   }
-}
 
-const report = new Map();
-const now = () => Math.floor(Date.now() / 1000);
+  namespace NodeJS {
+    interface ProcessEnv {
+      TURNSTILE_SITE_KEY?: string;
+      TURNSTILE_SECRET_KEY?: string;
+    }
+  }
+}
 
 const app = express();
 
@@ -38,10 +43,10 @@ app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Cache-Control", "no-cache, no-store");
   const csp = `
-    script-src 'nonce-${res.nonce}'; 
-    frame-src 'none'; 
-    object-src 'none'; 
-    base-uri 'self'; 
+    script-src 'nonce-${res.nonce}' strict-dynamic;
+    frame-src 'none';
+    object-src 'none';
+    base-uri 'self';
     style-src 'unsafe-inline' https://andybrewer.github.io/mvp/mvp.css;`
     .replace(/\s+/g, " ")
     .trim();
@@ -188,7 +193,10 @@ app.all("/share", (req, res) => {
 });
 
 app.get("/share/read", (req, res) => {
-  return res.render("read_share", { nonce: res.nonce });
+  return res.render("read_share", {
+    nonce: res.nonce,
+    sitekey: process.env.TURNSTILE_SITE_KEY,
+  });
 });
 
 app.get("/share/read/:id", (req, res) => {
@@ -230,21 +238,30 @@ app.all("/logout", (req, res) => {
   return res.redirect("/");
 });
 
-app.get("/report", (req, res) => {
-  if (!req.session.username) {
-    return res.redirect("/login");
+app.post("/report", async (req, res) => {
+  if (process.env.TURNSTILE_SECRET_KEY) {
+    const turnstileToken = req.body["cf-turnstile-response"];
+    if (!turnstileToken) {
+      return res.status(400).json({ error: "bad request" });
+    }
+    const outcome = await fetch(
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+      {
+        method: "POST",
+        body: new URLSearchParams({
+          secret: process.env.TURNSTILE_SECRET_KEY,
+          response: turnstileToken,
+        }),
+      },
+    ).then((resp) => resp.json());
+    if (!outcome.success) {
+      return res.status(400).json({ error: "invalid captcha" });
+    }
   }
-  const id = req.query.id;
-  const username = req.query.username;
+  const { id, username } = req.body;
   if (typeof id === "string" && /^\d+$/.test(id)) {
     try {
-      if (
-        report.has(req.session.username) &&
-        report.get(req.session.username) + 30 > now()
-      ) {
-        return res.json({ error: "too fast" });
-      }
-      report.set(req.session.username, now());
+      await visit(id, username);
       return res.json({ msg: "visited" });
     } catch (e) {
       return res.status(500).json({ error: "failed" });
