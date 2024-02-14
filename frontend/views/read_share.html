@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <title></title>
     <link rel="stylesheet" href="https://andybrewer.github.io/mvp/mvp.css" />
-    <<% if (sitekey) { %>
+    <% if (sitekey) { %>
     <script
       nonce="<%= nonce %>"
       src="https://challenges.cloudflare.com/turnstile/v0/api.js"
@@ -31,13 +31,12 @@
           <li>Diary</li>
         </ul>
         <ul>
-          <li>
-            <form action="/report" method="post">
-              <input type="hidden" name="id" id="report-id" />
-              <div class="cf-turnstile" data-sitekey="<%= sitekey %>"></div>
-              <input type="submit" value="report" />
-            </form>
-          </li>
+          <form action="/report" method="post">
+            <input type="hidden" name="id" id="report-id" />
+            <input type="hidden" name="username" id="report-username" />
+            <div class="cf-turnstile" data-sitekey="<%= sitekey %>"></div>
+            <input type="submit" value="report" />
+          </form>
         </ul>
       </nav>
     </header>

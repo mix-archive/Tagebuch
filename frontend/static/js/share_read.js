@@ -29,6 +29,7 @@ load = () => {
           content.innerHTML = data.content;
           document.getElementById("content").appendChild(content);
         });
+      document.getElementById("report-username").value = username;
     }
     document.getElementById("report-id").value = id;
   }
