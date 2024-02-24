@@ -22,19 +22,25 @@
           <li>Hello, <%= username %>!</li>
         </ul>
         <ul>
-          <li><a href="/share">share</a></li>
-          <li><a href="/logout">logout</a></li>
+          <li><a href="/share">Share</a></li>
+          <li><a href="/logout">Logout</a></li>
         </ul>
       </nav>
     </header>
     <main>
-      <h2>new post</h2>
+      <h2>New Post</h2>
+      <% if (error) { %>
+      <section>
+        <aside><blockquote><%= error %></blockquote></aside>
+      </section>
+      <% } %>
       <form action="/write" , method="POST">
-        <label
-          >title <input type="text" name="title" placeholder="" required
-        /></label>
         <label>
-          content
+          Title
+          <input type="text" name="title" placeholder="" required />
+        </label>
+        <label>
+          Content
           <textarea name="content" placeholder="" required></textarea>
         </label>
         <button>POST</button>

@@ -1,7 +1,8 @@
 import { urlencoded } from "body-parser";
-import { assert } from "console";
+import ejs from "ejs";
 import express from "express";
 import session from "express-session";
+import { AsyncLocalStorage } from "node:async_hooks";
 
 import visit from "./bot";
 import { genNonce, randomBytes, sha256 } from "./utils";
@@ -13,12 +14,6 @@ declare module "express-session" {
 }
 
 declare global {
-  namespace Express {
-    interface Response {
-      nonce: string;
-    }
-  }
-
   namespace NodeJS {
     interface ProcessEnv {
       TURNSTILE_SITE_KEY?: string;
@@ -41,28 +36,36 @@ app.use(
   }),
 );
 
+const nonceStorage = new AsyncLocalStorage<string>();
+
 app.use((req, res, next) => {
-  res.nonce = genNonce();
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Cache-Control", "no-cache, no-store");
-  const csp = `
-    script-src 'nonce-${res.nonce}' 'strict-dynamic'
-    frame-src https://challenges.cloudflare.com;
-    object-src 'none';
-    base-uri 'self';
-    style-src 'self' 'unsafe-inline';`
-    .replace(/\s+/g, " ")
-    .trim();
-  res.setHeader("Content-Security-Policy", csp);
-  next();
+  nonceStorage.run(genNonce(), next);
 });
 
-app.engine("html", require("ejs").renderFile);
+app.engine("html", async (path, data, cb) =>
+  ejs.renderFile(path, data, (err, html) => {
+    if (err) return cb(err);
+    const nonce = nonceStorage.getStore();
+    if (nonce) {
+      const cspMeta = `<meta http-equiv="Content-Security-Policy" content="script-src 'nonce-${nonce}';">`;
+      html = html.replace(/<head>/, `<head>\n${cspMeta}`);
+    }
+    cb(null, html);
+  }),
+);
 app.set("view engine", "html");
 
-const users = new Map(),
-  notes = new Map(),
-  sharedNotes = new Map();
+interface Note {
+  title: string;
+  content: string;
+  username: string;
+}
+
+const users = new Map<string, string>(),
+  notes = new Map<string, Note[]>(),
+  sharedNotes = new Map<string, Note[]>();
 
 app.all("/", (req, res) => {
   if (!req.session.username) {
@@ -71,6 +74,7 @@ app.all("/", (req, res) => {
     return res.render("index", {
       username: req.session.username,
       notes: notes.get(req.session.username) || [],
+      error: req.query.error,
     });
   }
 });
@@ -121,8 +125,16 @@ app.post("/write", (req, res) => {
   const username = req.session.username;
   const { title, content } = req.body;
 
-  assert(title && typeof title === "string" && title.length < 30);
-  assert(content && typeof content === "string" && content.length < 256);
+  if (typeof title !== "string" || title.length >= 30) {
+    return res.redirect(
+      `/?${new URLSearchParams({ error: "Title is too long" }).toString()}`,
+    );
+  }
+  if (typeof content !== "string" || content.length >= 256) {
+    return res.redirect(
+      `/?${new URLSearchParams({ error: "Content is too long" }).toString()}`,
+    );
+  }
 
   const user_notes = notes.get(username) || [];
   user_notes.push({
@@ -140,48 +152,37 @@ app.get("/read", (req, res) => {
     return res.redirect("/");
   }
 
-  return res.render("read", { nonce: res.nonce });
+  return res.render("read", { nonce: nonceStorage.getStore() });
 });
 
-app.get("/read/:id", (req, res) => {
+app.get("/read/:id(\\d+)", (req, res) => {
   if (!req.session.username) {
     return res.redirect("/");
   }
 
-  const { id } = req.params;
-  if (!/^\d+$/.test(id)) {
-    return res.json({ status: 401, message: "Invalid parameter" });
-  }
-
-  const user_notes = notes.get(req.session.username);
-  const found = user_notes && user_notes[id];
-
-  if (found) {
-    return res.json({ title: found.title, content: found.content });
-  } else {
-    return res.json({ title: "404 not found", content: "no such note" });
-  }
+  const found = notes.get(req.session.username)?.[+req.params.id] ?? {
+    title: "404 not found",
+    content: "no such note",
+  };
+  return res.json({ title: found.title, content: found.content });
 });
 
-app.get("/share_diary/:id", (req, res) => {
+app.get("/share_diary/:id(\\d+)", (req, res) => {
   if (!req.session.username) {
     return res.redirect("/");
   }
-  const tmp = sharedNotes.get(req.session.username) || [];
-  const { id } = req.params;
 
-  if (!/^\d+$/.test(id)) {
-    return res.json({ status: 401, message: "Invalid parameter" });
-  }
-
-  const user_notes = notes.get(req.session.username);
-  const found = user_notes && user_notes[id];
+  const found = notes.get(req.session.username)?.[+req.params.id];
   if (found) {
-    tmp.push(found);
-    sharedNotes.set(req.session.username, tmp);
+    sharedNotes.set(
+      req.session.username,
+      (sharedNotes.get(req.session.username) ?? []).concat(found),
+    );
     return res.redirect("/share");
   } else {
-    return res.json({ title: "404 not found", content: "no such note" });
+    return res.redirect(
+      `/?${new URLSearchParams({ error: "No such note" }).toString()}`,
+    );
   }
 });
 
@@ -190,54 +191,43 @@ app.all("/share", (req, res) => {
     return res.redirect("/login");
   } else {
     return res.render("share", {
-      notes: sharedNotes.get(req.session.username) || [],
+      notes: sharedNotes.get(req.session.username) ?? [],
     });
   }
 });
 
 app.get("/share/read", (req, res) => {
   return res.render("read_share", {
-    nonce: res.nonce,
+    nonce: nonceStorage.getStore(),
     sitekey: process.env.TURNSTILE_SITE_KEY,
   });
 });
 
 app.get("/share/read/:id", (req, res) => {
   const { id } = req.params;
-  const username = req.query.username;
 
-  let found;
   if (!/^\d+$/.test(id)) {
     return res.json({ status: 401, message: "Invalid parameter" });
   }
-  try {
-    if (username !== undefined) {
-      found = sharedNotes.get(username);
-      if (found) {
-        return res.json({
-          title: found[id].title,
-          content: found[id].content,
-          username: found[id].username,
-        });
-      }
-    } else if (req.session.username) {
-      found = sharedNotes.get(req.session.username);
-      if (found) {
-        return res.json({
-          title: found[id].title,
-          content: found[id].content,
-          username: found[id].username,
-        });
-      }
-    }
-  } catch {
+  const username =
+    typeof req.query.username === "string"
+      ? req.query.username
+      : req.session.username;
+  const found = username && sharedNotes.get(username);
+
+  if (!found) {
     return res.json({ title: "404 not found", content: "no such note" });
   }
-  return res.json({ title: "404 not found", content: "no such note" });
+
+  return res.json({
+    title: found[id].title,
+    content: found[id].content,
+    username: found[id].username,
+  });
 });
 
-app.all("/logout", (req, res) => {
-  req.session.destroy(() => {});
+app.all("/logout", async (req, res) => {
+  await new Promise((resolve) => req.session.destroy(resolve));
   return res.redirect("/");
 });
 
