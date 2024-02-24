@@ -19,7 +19,8 @@ WORKDIR /app
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_DISABLE_HEADLESS_WARNING=true
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile && \
+    pnpm store prune
 
+ENV NODE_ENV=production
 CMD [ "pnpm", "start" ]
