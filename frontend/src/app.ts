@@ -130,7 +130,7 @@ app.post("/write", (req, res) => {
       `/?${new URLSearchParams({ error: "Title is too long" }).toString()}`,
     );
   }
-  if (typeof content !== "string" || content.length >= 256) {
+  if (typeof content !== "string" || content.length >= 10240) {
     return res.redirect(
       `/?${new URLSearchParams({ error: "Content is too long" }).toString()}`,
     );
