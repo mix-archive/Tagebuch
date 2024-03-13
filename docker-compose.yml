@@ -6,9 +6,15 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile
+    restart: unless-stopped
     environment:
       - FLAG=${FLAG}
       - TURNSTILE_SITE_KEY=${TURNSTILE_SITE_KEY}
       - TURNSTILE_SECRET_KEY=${TURNSTILE_SECRET_KEY}
-    ports:
-      - "8080:80"
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: ["tunnel", "run", "--token", "${TUNNEL_TOKEN}"]
+    depends_on:
+      - challenge
