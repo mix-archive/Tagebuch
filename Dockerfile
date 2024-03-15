@@ -23,4 +23,4 @@ RUN pnpm install --frozen-lockfile && \
     pnpm store prune
 
 ENV NODE_ENV=production
-CMD [ "pnpm", "start" ]
+CMD [ "timeout", "--signal=SIGKILL", "15m", "pnpm", "start" ]
